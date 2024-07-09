@@ -10,10 +10,19 @@ use Illuminate\Support\Facades\Validator;
 
 class CustomerController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $data = Customer::all();
+            $size = $request->input('pageSize');
+            $search = $request->input('search');
+            $sortField = $request->input('field', 'id');
+            $sortOrder = $request->input('sort', 'asc');
+            $data = Customer::orderBy($sortField, $sortOrder)->where(function ($q) use ($search) {
+                $q->where('first_name', 'LIKE', "%{$search}%")
+                    ->orWhere('last_name', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%")
+                    ->orWhere('phone_number', 'LIKE', "%{$search}%");
+            })->paginate($size);
             return $this->sendResponse("List fetched successfully", $data, 200);
         } catch (\Exception $e) {
             return $this->handleException($e);
